@@ -99,11 +99,12 @@ th:first-child,td:first-child{text-align:left}
 footer{margin:14px 0;font-size:.75rem;color:var(--mute);text-align:center}footer a{color:var(--acc)}
 .slab{display:grid;grid-template-columns:2fr 1fr;gap:6px;margin-bottom:6px}
 @media print{.tabs,.k,.go,.acts,#hist,#theme,.chips,.ad,#recs,.row{display:none!important}body{background:#fff;color:#000}}
+#rcpt{display:none}@media print{body.rc .wrap{display:none!important}body.rc #rcpt{display:block!important;padding:20px;color:#000;background:#fff}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1><span id="brand">Hisab Calculator | हिसाब</span> <button id="theme" class="k s" style="padding:6px 10px">Dark / Light</button></h1>
+  <h1><span id="brand">Hisab Calculator | हिसाब</span> <button id="npd" class="k s" style="padding:6px 10px">०१२३</button> <button id="theme" class="k s" style="padding:6px 10px">Dark / Light</button></h1>
   <div class="tabs" role="tablist">
     <button class="on" data-t="calc">Calculator<br>क्याल्कुलेटर</button>
     <button data-t="int">Byaj<br>ब्याज (सैकडा)</button>
@@ -135,6 +136,9 @@ footer{margin:14px 0;font-size:.75rem;color:var(--mute);text-align:center}footer
       <div><input id="iM" type="number" inputmode="numeric" min="0" value="0" aria-label="Months"><small class="note">Month / महिना</small></div>
       <div><input id="iD" type="number" inputmode="numeric" min="0" value="0" aria-label="Days"><small class="note">Day / दिन</small></div>
     </div>
+    <label>Or use dates / वा मिति राख्नुहोस् (AD)</label>
+    <div class="g2"><div><input id="iF" type="date" aria-label="From date"><small class="note">From / देखि</small></div><div><input id="iE" type="date" aria-label="To date"><small class="note">To / सम्म</small></div></div>
+    <div class="note">If both dates are filled they replace Year/Month/Day. Full months + remaining days (30 days = 1 month). / दुवै मिति भरेमा माथिको अवधि बदलिन्छ।</div>
     <label>Type / किसिम</label>
     <select id="iT"><option value="s">Simple / साधारण ब्याज</option><option value="cm">Compound monthly / मासिक चक्रीय ब्याज</option><option value="cy">Compound yearly / वार्षिक चक्रीय ब्याज</option></select>
     <button class="go" id="iGo">Calculate / हिसाब गर्नुहोस्</button>
@@ -176,16 +180,18 @@ footer{margin:14px 0;font-size:.75rem;color:var(--mute);text-align:center}footer
     <div class="out" id="tOut"></div>
   </section>
 
-  <div class="acts g3 hide" id="acts"><button id="aXl">Excel</button><button id="aPr">Print / PDF</button><button id="aSv">Save / सुरक्षित</button></div>
+  <div class="acts g2 hide" id="acts"><button id="aXl">Excel</button><button id="aPr">Print / PDF</button><button id="aRc">Receipt / रसिद</button><button id="aSv">Save / सुरक्षित</button></div>
   <details id="recs"><summary>Saved records / सुरक्षित हिसाब</summary><div id="rl"></div><button class="k s" id="rClr" style="padding:6px 10px;margin-top:6px">Clear all / सबै हटाउनुहोस्</button></details>
   <div class="ad" id="ad"><!-- Paste your Google AdSense code here after approval --></div>
+  <div id="rcpt"></div>
   <footer id="foot">Results are estimates only, not financial or tax advice. / नतिजा अनुमानित मात्र हो, लगानी वा कर सल्लाह होइन।</footer>
 </div>
 
 <script>
 const BRAND={name:'Hisab Calculator | हिसाब',contact:'',affiliateText:'',affiliateUrl:''}; // edit for each cooperative / customer
 const $=id=>document.getElementById(id);
-const fmt=n=>isFinite(n)?Number(n).toLocaleString('en-IN',{maximumFractionDigits:2}):'—';
+let NP=false;const nd=s=>NP?String(s).replace(/[0-9]/g,d=>'०१२३४५६७८९'[d]):s;
+const fmt=n=>nd(isFinite(n)?Number(n).toLocaleString('en-IN',{maximumFractionDigits:2}):'—');
 const rs=n=>'Rs '+fmt(n);
 
 /* theme */
@@ -211,7 +217,11 @@ $('aPr').onclick=()=>window.print();
 const RK='hisab_records';
 function recs(){try{return JSON.parse(localStorage.getItem(RK)||'[]')}catch(e){return[]}}
 function drawRecs(){$('rl').innerHTML=recs().map(r=>'<div class="r"><b>'+r.t+'</b> ('+r.d+')\n'+r.l+'</div>').join('')||'<div class="note">Nothing saved yet. / केही सुरक्षित छैन।</div>'}
-$('aSv').onclick=()=>{const c=cur[tab];if(!c)return;try{const r=recs();r.unshift({t:c.title,d:new Date().toLocaleString(),l:c.lines.map(x=>x[0]+': '+x[1]).join('\n')});localStorage.setItem(RK,JSON.stringify(r.slice(0,30)));drawRecs();$('recs').open=true}catch(e){alert('Could not save in this browser.')}};
+$('aSv').onclick=()=>{const c=cur[tab];if(!c)return;try{const r=recs();r.unshift({t:c.title,d:new Date().toLocaleString(),l:c.lines.map(x=>x[0]+': '+x[1]).join('\n')});localStorage.setItem(RK,JSON.stringify(r.slice(0,30)));drawRecs();
+$('aRc').onclick=()=>{const c=cur[tab];if(!c)return;const n=(prompt('Customer name / ग्राहकको नाम','')||'').replace(/</g,'&lt;');
+  $('rcpt').innerHTML='<h2>'+BRAND.name+'</h2><p>Date / मिति: '+new Date().toLocaleDateString()+'<br>Customer / ग्राहक: '+n+'</p><h3>'+c.title+'</h3><table>'+c.lines.map(x=>'<tr><td>'+x[0]+'</td><td>'+(typeof x[1]==='number'?fmt(x[1]):x[1])+'</td></tr>').join('')+'</table><p style="margin-top:60px">Customer sign / ग्राहकको सही: ________ &nbsp;&nbsp; Authorized sign / अधिकृत सही: ________</p><p style="font-size:12px">Estimate only. / अनुमानित हिसाब।</p>';
+  document.body.classList.add('rc');window.print();setTimeout(()=>document.body.classList.remove('rc'),800)};
+$('npd').onclick=()=>{NP=!NP;$('npd').textContent=NP?'0123':'०१२३';const g={int:'iGo',sip:'sGo',emi:'eGo',tax:'tGo'};for(const t in g)if(cur[t])$(g[t]).click()};$('recs').open=true}catch(e){alert('Could not save in this browser.')}};
 $('rClr').onclick=()=>{try{localStorage.removeItem(RK)}catch(e){}drawRecs()};
 drawRecs();
 
@@ -274,7 +284,12 @@ document.addEventListener('keydown',e=>{
 document.querySelectorAll('.chips button').forEach(b=>b.onclick=()=>{$('iR').value=b.dataset.r});
 $('iGo').onclick=()=>{
   const P=+$('iP').value,r=+$('iR').value,y=+$('iY').value||0,mo=+$('iM').value||0,d=+$('iD').value||0,t=$('iT').value;
-  const months=y*12+mo+d/30;
+  let months=y*12+mo+d/30;const f=$('iF').value,e=$('iE').value;
+  if(f&&e){const a=new Date(f),b=new Date(e);
+    if(b<a){$('iOut').innerHTML='<div class="card err">End date must be after start date. / अन्तिम मिति सुरु मितिभन्दा पछि हुनुपर्छ।</div>';return}
+    let m=(b.getFullYear()-a.getFullYear())*12+b.getMonth()-a.getMonth(),x=new Date(a);x.setMonth(x.getMonth()+m);
+    if(x>b){m--;x=new Date(a);x.setMonth(x.getMonth()+m)}
+    const dd=Math.round((b-x)/864e5);months=m+dd/30;$('iY').value=Math.floor(m/12);$('iM').value=m%12;$('iD').value=dd;}
   if(!(P>0)||!(r>=0)||!(months>0)){$('iOut').innerHTML='<div class="card err">Enter principal, rate and time. / मूलधन, दर र अवधि हाल्नुहोस्।</div>';return}
   let total;
   if(t==='s')total=P+P*r/100*months;
